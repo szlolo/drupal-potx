@@ -1,3 +1,13 @@
+NOTE from @kgaut : 
+
+This is a quick and dirty port for d8, this readme file is not accurate. @see : https://www.drupal.org/node/2356469
+
+How to make it works ?
+
+  - download this module in modules folder (if you use composer : `composer require kgaut/potx`)
+  - enable it : `drush en potx`
+  - extract translation with drush : `drush @ALIAS potx single --include=modules/contrib/potx/ --modules=MYMODULE_MACHINE_NAME --api=8`
+
 ABOUT
 ================================================================================
 
