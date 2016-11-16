@@ -7,6 +7,8 @@ How to make it works ?
   - download this module in modules folder (if you use composer : `composer require kgaut/potx`)
   - enable it : `drush en potx`
   - extract translation with drush : `drush @ALIAS potx single --include=modules/contrib/potx/ --modules=MYMODULE_MACHINE_NAME --api=8`
+  
+Thanks to @rodrigoaguilera you can now export tranlated string from the database : `drush potx single --modules=MYMODULE_MACHINE_NAME --api=8 --language=es`
 
 ABOUT
 ================================================================================
