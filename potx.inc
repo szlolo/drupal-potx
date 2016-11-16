@@ -431,6 +431,23 @@ function potx_finish_processing($save_callback = '_potx_save_string', $api_versi
 function _potx_build_files($string_mode = POTX_STRING_RUNTIME, $build_mode = POTX_BUILD_SINGLE, $force_name = 'general',  $save_callback = '_potx_save_string', $version_callback = '_potx_save_version', $header_callback = '_potx_get_header', $template_export_langcode = NULL, $translation_export_langcode = NULL, $api_version = POTX_API_CURRENT) {
   global $_potx_store;
 
+  // Get Drupal core major version, to establish translation context support.
+  $core_version_major = 0;
+  if (defined('VERSION')) {
+    // 4.7, 5, 6, 7.
+    $core_version_major = VERSION;
+  }
+  elseif (class_exists('\\Drupal') && defined('\\Drupal::VERSION')) {
+    // 8.
+    $core_version_major = \Drupal::VERSION;
+  }
+  if ($core_version_major) {
+    if (($pos = strpos($core_version_major, '-'))) {
+      $core_version_major = substr($core_version_major, 0, $pos);
+    }
+    $core_version_major = (int) floor($core_version_major);
+  }
+
   // Get strings and versions by reference.
   $strings  = $save_callback(NULL, NULL, NULL, 0, $string_mode);
   $versions = $version_callback();
@@ -500,7 +517,12 @@ function _potx_build_files($string_mode = POTX_STRING_RUNTIME, $build_mode = POT
         $output .= "msgid \"$singular\"\n";
         $output .= "msgid_plural \"$plural\"\n";
         if (isset($translation_export_langcode)) {
-          $output .= _potx_translation_export($translation_export_langcode, $singular, $plural, $api_version);
+          if (!empty($context) && $core_version_major >= 7) {
+            $output .= _potx_translation_export($translation_export_langcode, $singular, $plural, $api_version, $context);
+          }
+          else {
+            $output .= _potx_translation_export($translation_export_langcode, $singular, $plural, $api_version);
+          }
         }
         else {
           $output .= "msgstr[0] \"\"\n";
@@ -514,7 +536,12 @@ function _potx_build_files($string_mode = POTX_STRING_RUNTIME, $build_mode = POT
         }
         $output .= "msgid \"$string\"\n";
         if (isset($translation_export_langcode)) {
-          $output .= _potx_translation_export($translation_export_langcode, $string, NULL, $api_version);
+          if (!empty($context) && $core_version_major >= 7) {
+            $output .= _potx_translation_export($translation_export_langcode, $string, NULL, $api_version, $context);
+          }
+          else {
+            $output .= _potx_translation_export($translation_export_langcode, $string, NULL, $api_version);
+          }
         }
         else {
           $output .= "msgstr \"\"\n";
@@ -552,8 +579,12 @@ function _potx_build_files($string_mode = POTX_STRING_RUNTIME, $build_mode = POT
  *   Plural version of singular string.
  * @param $api_version
  *   Drupal API version to work with.
+ * @param $context
+ *   Translation context (Drupal >=7).
+ *
+ * @return string
  */
-function _potx_translation_export($translation_export_langcode, $string, $plural = NULL, $api_version = POTX_API_CURRENT) {
+function _potx_translation_export($translation_export_langcode, $string, $plural = NULL, $api_version = POTX_API_CURRENT, $context = '') {
 
   // Stip out slash escapes.
   $string = stripcslashes($string);
@@ -564,7 +595,13 @@ function _potx_translation_export($translation_export_langcode, $string, $plural
 
   if (!isset($plural)) {
     // Single string to look translation up for.
-    if ($translation = db_query("SELECT t.translation FROM {locales_source} s LEFT JOIN {locales_target} t ON t.lid = s.lid WHERE s.source = :source AND t.{$language_column} = :langcode", array(':source' => $string, ':langcode' => $translation_export_langcode))->fetchField()) {
+    if (!empty($context)) {
+      $translation = db_query("SELECT t.translation FROM {locales_source} s LEFT JOIN {locales_target} t ON t.lid = s.lid WHERE s.source = :source AND t.{$language_column} = :langcode AND context = :context", array(':source' => $string, ':langcode' => $translation_export_langcode, ':context' => $context))->fetchField();
+    }
+    else {
+      $translation = db_query("SELECT t.translation FROM {locales_source} s LEFT JOIN {locales_target} t ON t.lid = s.lid WHERE s.source = :source AND t.{$language_column} = :langcode", array(':source' => $string, ':langcode' => $translation_export_langcode))->fetchField();
+    }
+    if ($translation) {
       return 'msgstr '. _locale_export_string($translation);
     }
     return "msgstr \"\"\n";
