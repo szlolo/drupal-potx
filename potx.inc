@@ -554,7 +554,6 @@ function _potx_build_files($string_mode = POTX_STRING_RUNTIME, $build_mode = POT
  *   Drupal API version to work with.
  */
 function _potx_translation_export($translation_export_langcode, $string, $plural = NULL, $api_version = POTX_API_CURRENT) {
-  include_once 'includes/locale.inc';
 
   // Stip out slash escapes.
   $string = stripcslashes($string);
@@ -629,9 +628,6 @@ function _potx_translation_export($translation_export_langcode, $string, $plural
 function _potx_get_header($file, $template_export_langcode = NULL, $api_version = POTX_API_CURRENT) {
   // We only have language to use if we should export with that langcode.
   $language = NULL;
-  if (isset($template_export_langcode)) {
-    $language = db_query($api_version > POTX_API_5 ? "SELECT language, name, plurals, formula FROM {languages} WHERE language = :langcode" : "SELECT locale, name, plurals, formula FROM {locales_meta} WHERE locale = :langcode", array(':langcode' => $template_export_langcode))->fetchObject();
-  }
 
   $output  = '# $'.'Id'.'$'."\n";
   $output .= "#\n";
@@ -3100,4 +3096,62 @@ if (!function_exists('drupal_parse_info_file')) {
 
     return $info;
   }
+}
+
+function _locale_export_string($str) {
+  $stri = addcslashes($str, "\0..\37\\\"");
+  $parts = array();
+
+  // Cut text into several lines
+  while ($stri != "") {
+    $i = strpos($stri, "\\n");
+    if ($i === FALSE) {
+      $curstr = $stri;
+      $stri = "";
+    }
+    else {
+      $curstr = substr($stri, 0, $i + 2);
+      $stri = substr($stri, $i + 2);
+    }
+    $curparts = explode("\n", _locale_export_wrap($curstr, 70));
+    $parts = array_merge($parts, $curparts);
+  }
+
+  // Multiline string
+  if (count($parts) > 1) {
+    return "\"\"\n\"" . implode("\"\n\"", $parts) . "\"\n";
+  }
+  // Single line string
+  elseif (count($parts) == 1) {
+    return "\"$parts[0]\"\n";
+  }
+  // No translation
+  else {
+    return "\"\"\n";
+  }
+}
+
+function _locale_export_wrap($str, $len) {
+  $words = explode(' ', $str);
+  $return = array();
+
+  $cur = "";
+  $nstr = 1;
+  while (count($words)) {
+    $word = array_shift($words);
+    if ($nstr) {
+      $cur = $word;
+      $nstr = 0;
+    }
+    elseif (strlen("$cur $word") > $len) {
+      $return[] = $cur . " ";
+      $cur = $word;
+    }
+    else {
+      $cur = "$cur $word";
+    }
+  }
+  $return[] = $cur;
+
+  return implode("\n", $return);
 }
