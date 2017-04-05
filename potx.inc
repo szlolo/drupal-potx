@@ -611,7 +611,9 @@ function _potx_translation_export($translation_export_langcode, $string, $plural
     // String with plural variants. Fill up source string array first.
     $plural = stripcslashes($plural);
     $strings = array();
-    $number_of_plurals = db_query('SELECT plurals FROM {'. $language_table ."} WHERE {$language_column} = :langcode", array(':langcode' => $translation_export_langcode))->fetchField();
+    $number_of_plurals = db_table_exists('{'. $language_table . '}') ?
+      db_query('SELECT plurals FROM {'. $language_table ."} WHERE {$language_column} = :langcode", array(':langcode' => $translation_export_langcode))->fetchField() :
+      0;
     $plural_index = 0;
     while ($plural_index < $number_of_plurals) {
       if ($plural_index == 0) {
