@@ -66,91 +66,11 @@ function potx_drush_help($section) {
  * Drush command callback.
  */
 function potx_drush_extract($mode = NULL) {
-  // Include library.
-  include_once __DIR__ . '/potx.inc';
-  include_once __DIR__ . '/potx.local.inc';
-
-  $files = array();
-  $build_mode = POTX_BUILD_SINGLE;
-
-  if (!is_null($mode) && in_array($mode, array('core', 'multiple', 'single'))) {
-    // First argument could be any of the mode names.
-    $build_mode = constant('POTX_BUILD_'. strtoupper($mode));
-  }
-  // Silence error message reporting. Messages will be reported by at the end.
-  potx_status('set', POTX_STATUS_SILENT);
-
-  // Get Drush options.
-  $modules_option = drush_get_option('modules');
-  $files_option = drush_get_option('files');
-  $folder_option = drush_get_option('folder');
-  $api_option = drush_get_option('api');
-  $language_option = drush_get_option('language');
-  if (empty($api_option) || !in_array($api_option, array(5, 6, 7, 8))) {
-    $api_option = POTX_API_CURRENT;
-  }
-
-  potx_local_init($folder_option);
-
-  if (!empty($modules_option)) {
-    $modules = explode(',', $modules_option);
-    foreach ($modules as $module) {
-      $files = array_merge($files, _potx_explore_dir(drupal_get_path('module', $module) . '/', '*', $api_option, TRUE));
-    }
-  }
-  elseif (!empty($files_option)) {
-    $files = explode(',', $files_option);
-  }
-  elseif (!empty($folder_option)) {
-    $files = _potx_explore_dir($folder_option, '*', $api_option, TRUE);
-  }
-  else {
-    // No file list provided so autodiscover files in current directory.
-    $files = _potx_explore_dir(drush_cwd() . '/', '*', $api_option, TRUE);
-  }
-
-  foreach ($files as $file) {
-    drush_print(dt("Processing $file..."));
-    _potx_process_file($file, 0, '_potx_save_string', '_potx_save_version', $api_option);
-  }
-
-  potx_finish_processing('_potx_save_string', $api_option);
-
-  _potx_build_files(
-    POTX_STRING_RUNTIME,
-    $build_mode,
-    'general',
-    '_potx_save_string',
-    '_potx_save_version',
-    '_potx_get_header',
-    $language_option,
-    $language_option
-  );
-  _potx_build_files(POTX_STRING_INSTALLER, POTX_BUILD_SINGLE, 'installer');
-  _potx_write_files();
-
-  drush_print("");
-  drush_print(dt("Stats"));
-  $header = array(
-    'files' => dt('Files'),
-    'strings' => dt('Strings'),
-    'warnings' => dt('Warnings'),
-  );
-  $rows = array(array_values($header));
-  // Get errors, if any.
-  $errors = potx_status('get');
-  // Get saved strings.
-  $strings = _potx_save_string(NULL,  NULL, NULL, 0, POTX_STRING_RUNTIME);
-  $rows[] = array(count($files), count($strings), count($errors));
-  drush_print_table($rows, TRUE);
-
-  if (!empty($errors)) {
-    drush_print(dt("Errors"));
-    foreach ($errors as $error) {
-      drush_set_error($error);
-    }
-  }
-
-  drush_print("");
-  drush_print(dt("Done"));
+  \Drupal::service('potx.commands')->potx($mode,  [
+    'modules' => drush_get_option('modules'),
+    'files' => drush_get_option('files'),
+    'folder' => drush_get_option('folder'),
+    'api' => drush_get_option('api'),
+    'language' => drush_get_option('language'),
+  ]);
 }
