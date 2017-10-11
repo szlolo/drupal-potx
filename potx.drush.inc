@@ -66,7 +66,7 @@ function potx_drush_help($section) {
  * Drush command callback.
  */
 function potx_drush_extract($mode = NULL) {
-  \Drupal::service('drush.command')->potx($mode,  [
+  \Drupal::service('potx.commands')->potx($mode,  [
     'modules' => drush_get_option('modules'),
     'files' => drush_get_option('files'),
     'folder' => drush_get_option('folder'),
