@@ -154,7 +154,7 @@ class PotxCommands extends DrushCommands
         if (!empty($errors)) {
             $this->io()->title(dt('Errors'));
             foreach ($errors as $error) {
-                drush_set_error($error);
+                throw new \Exception($error);
             }
         }
 
