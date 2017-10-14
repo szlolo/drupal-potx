@@ -20,6 +20,8 @@ class PotxCommands extends DrushCommands
      * @param array $options
      *   Command options.
      *
+     * @throws \Exception
+     *
      * @option modules Comma delimited list of modules to extract translatable
      *   strings from.
      * @option files Comma delimited list of files to extract translatable
