@@ -8,7 +8,12 @@
     "composer/installers": "~1.0"
   },
   "extra": {
-    "installer-name": "potx"
+    "installer-name": "potx",
+    "drush": {
+      "services": {
+        "drush.services.yml": "^9"
+      }
+    }
   },
   "type":"drupal-module"
 }
