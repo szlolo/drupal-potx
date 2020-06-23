@@ -30,6 +30,7 @@ class PotxCommands extends DrushCommands
      *   option is set this defaults to current directory.
      * @option api Drupal core version to use for extraction settings.
      * @option language Language to include in the po file
+     * @option destination The file name of the exported file.
      *
      * @usage potx single
      *   Extract translatable strings from applicable files in current
@@ -52,6 +53,7 @@ class PotxCommands extends DrushCommands
             'folder' => null,
             'api' => null,
             'language' => null,
+            'destination' => 'general',
           ]
     ) {
         // Include library.
@@ -75,11 +77,15 @@ class PotxCommands extends DrushCommands
         $folder_option = $options['folder'];
         $api_option = $options['api'];
         $language_option = $options['language'];
-        if (empty($api_option) || !in_array($api_option, [5, 6, 7, 8])) {
+        $destination = $options['destination'];
+      if (empty($api_option) || !in_array($api_option, [5, 6, 7, 8])) {
             $api_option = POTX_API_CURRENT;
         }
 
-        potx_local_init($folder_option);
+        if (!empty($folder_option)) {
+          $folders = explode(',', $folder_option);
+        }
+        potx_local_init($folders);
 
         if (!empty($modules_option)) {
             $modules = explode(',', $modules_option);
@@ -93,9 +99,12 @@ class PotxCommands extends DrushCommands
                 $files = array_merge($files, $module_files);
             }
         } elseif (!empty($files_option)) {
-            $files = explode(',', $files_option);
-        } elseif (!empty($folder_option)) {
-            $files = _potx_explore_dir($folder_option, '*', $api_option, true);
+          $files = explode(',', $files_option);
+        }
+        elseif ($folders) {
+          foreach ($folders as $folder) {
+            $files = array_merge($files, _potx_explore_dir($folder, '*', $api_option, TRUE));
+          }
         } else {
             // No file list provided so autodiscover files in current directory.
             $files = _potx_explore_dir(
@@ -122,7 +131,7 @@ class PotxCommands extends DrushCommands
         _potx_build_files(
             POTX_STRING_RUNTIME,
             $build_mode,
-            'general',
+            $destination,
             '_potx_save_string',
             '_potx_save_version',
             '_potx_get_header',

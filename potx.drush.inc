@@ -26,6 +26,7 @@ function potx_drush_command() {
       'folder' => 'Folder to begin translation extraction in. When no other option is set this defaults to current directory.',
       'api' => 'Drupal core version to use for extraction settings.',
       'language' => 'language to include in the po file',
+      'destination' => 'The file name of the exported file.',
     ),
     'examples' => array(
       'potx single' => 'Extract translatable strings from applicable files in current directory and write to single output file',
@@ -96,11 +97,16 @@ function potx_drush_extract($mode = NULL) {
     $folder_option = drush_get_option('folder');
     $api_option = drush_get_option('api');
     $language_option = drush_get_option('language');
+    $destination = drush_get_option('destination');
+
     if (empty($api_option) || !in_array($api_option, [5, 6, 7, 8])) {
       $api_option = POTX_API_CURRENT;
     }
 
-    potx_local_init($folder_option);
+    if (!empty($folder_option)) {
+      $folders = explode(',', $folder_option);
+    }
+    potx_local_init($folders);
 
     if (!empty($modules_option)) {
       $modules = explode(',', $modules_option);
@@ -111,8 +117,10 @@ function potx_drush_extract($mode = NULL) {
     elseif (!empty($files_option)) {
       $files = explode(',', $files_option);
     }
-    elseif (!empty($folder_option)) {
-      $files = _potx_explore_dir($folder_option, '*', $api_option, TRUE);
+    elseif ($folders) {
+      foreach ($folders as $folder) {
+        $files = array_merge($files, _potx_explore_dir($folder, '*', $api_option, TRUE));
+      }
     }
     else {
       // No file list provided so autodiscover files in current directory.
@@ -129,7 +137,7 @@ function potx_drush_extract($mode = NULL) {
     _potx_build_files(
       POTX_STRING_RUNTIME,
       $build_mode,
-      'general',
+      $destination,
       '_potx_save_string',
       '_potx_save_version',
       '_potx_get_header',
