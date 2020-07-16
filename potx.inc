@@ -1856,6 +1856,18 @@ function _potx_parse_twig_file($code, $file, $save_callback) {
         _potx_process_twig_trans_tag($stream, $file, $save_callback);
       }
     }
+    elseif ($token->test(Twig_token::STRING_TYPE)) {
+      // Include the translatable string from embed templates.
+      $string = $token->getValue();
+      $line = $token->getLine();
+      $token = $stream->next();
+      if ($token->test(Twig_Token::PUNCTUATION_TYPE, '|')) {
+        $token = $stream->next();
+        if ($token->test('t')) {
+          $save_callback(_potx_format_quoted_string('"' . trim($string) . '"'), POTX_CONTEXT_NONE, $file, $line);
+        }
+      }
+    }
   }
 }
 
